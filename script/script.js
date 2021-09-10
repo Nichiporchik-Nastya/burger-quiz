@@ -1,3 +1,4 @@
+//отслеживает загрузку контента
 document.addEventListener('DOMContentLoaded', function(){ //для предотвращения ошибок, возникающих во время загрузки страницы. Функции будут выполняться только после того, как все DOM объекты на HTML странице будут загружены 
 	'use strict'; //строгий режим для предотвращения ошибок во время работы со скрипт файлом
 	
@@ -8,9 +9,19 @@ document.addEventListener('DOMContentLoaded', function(){ //для предот�
 	const formAnswers = document.querySelector('#formAnswers');
 	const prevButton = document.querySelector('#prev');
 	const nextButton = document.querySelector('#next');
+    const sendButton = document.querySelector('#send');
+    const modalTitle = document.querySelector('.modal-title');
+
+// let Var = 3;
+// switch(Var) {
+//     case 3: console.log('3'); break;
+//     default: console.log('def');
+// }
 
 
 
+
+    //объект содержит вопросы и ответы
 	const questions = [
     {
         question: "Какого цвета бургер?",
@@ -86,29 +97,35 @@ document.addEventListener('DOMContentLoaded', function(){ //для предот�
     }
 ];
 
-
+    //открытие модального окна
 	btnOpenModal.addEventListener('click', () => {
 		
 		modalBlock.classList.add('d-block'); // в bootstrap класс d-block аналогичен свойству display block в css
 		playTest();
 	});
 
-
+    //закрытие модального окна
 	closeModal.addEventListener('click', () => {
 		modalBlock.classList.remove('d-block');
 	});
 
-	
+	//запуск тестирования
 	const playTest = () => {
-		let numberQuestion = 0;
-		const renderAnswers = (index) => {
+
+        const finalAnswers = [];
+
+		let numberQuestion = 0; //переменная с номером вопроса
+		
+        //рендер вариантов ответов
+        const renderAnswers = (index) => {
 
 			questions[index].answers.forEach((answer) => {
 					const answerItem = document.createElement("div");
 					
-					answerItem.classList.add('answers-item', 'd-flex', 'flex-column');
+					answerItem.classList.add('answers-item', 'd-flex', 'justify-content-center');
 
-					answerItem.innerHTML = `<input type="${questions[index].type}" id="${answer.title}" name="answer" class="d-none">
+					answerItem.innerHTML = `<input type="${questions[index].type}" 
+                    id="${answer.title}" name="answer" class="d-none" value="${answer.title}">
                 <label for="${answer.title}" class="d-flex flex-column justify-content-between">
                   <img class="answerImg" src=${answer.url} alt="burger">
                   <span>${answer.title}</span>
@@ -118,27 +135,84 @@ document.addEventListener('DOMContentLoaded', function(){ //для предот�
 				});
 			
 		};
+        //рендер вопросов запускает рендер ответов
 		const renderQuestions = (qIndex) => {
-			formAnswers.innerHTML = ''; //стерается первоначальное содержимое перед новым отображением
-			question.textContent = `${questions[qIndex].question}` // меняет содержимое элемента на указанное
-			renderAnswers(numberQuestion);
+			formAnswers.innerHTML = ''; //стирается первоначальное содержимое перед новым отображением
+
+            if(numberQuestion >= 0 && numberQuestion <= questions.length - 1)
+            {
+                question.textContent = `${questions[qIndex].question}` // меняет содержимое элемента на указанное
+    			renderAnswers(numberQuestion);
+                prevButton.classList.remove('d-none');
+                nextButton.classList.remove('d-none');
+                sendButton.classList.add('d-none');
+            }
+            //скрывает кнопки навигации
+            if(numberQuestion === 0) //оператор строго равенства, проверка не только по значению, но и типу
+                 prevButton.classList.add('d-none');
+            
+            if(numberQuestion === questions.length)
+            {
+                nextButton.classList.add('d-none');
+                prevButton.classList.add('d-none');
+                sendButton.classList.remove('d-none');
+
+                modalTitle.textContent ='Все ответы получены!';
+                question.textContent ='Наш менеджер свяжется с вами';
+                formAnswers.innerHTML = `
+                <div class="form-group">
+                    <label for="numberPhone">Ведите ваш номер телефона</label>
+                    <input type="phone" class="form-control" id="numberPhone">
+                </div>`;
+            }
+
+             if(numberQuestion === questions.length + 1)
+             {
+                formAnswers.textContent = "Спасибо за пройденный тест!";
+                setTimeout(() => {
+                    modalBlock.classList.remove('d-block');
+                }, 2000);
+             }
+
 		};
+
+        //запуск ф-ции для вопросов
 		renderQuestions(numberQuestion);
 
+        const checkedAnswer = () => {
+            const userAnswers = {}; //это объект, чтобы данные вносились структурированно
+            const inputs = [...formAnswers.elements].filter((input) => input.checked || input.id === 'numberPhone'); //спред-оператор //filter каждую итерацию принимает 1 элемент из массива и возвращает только тот, который подходит по условия
+
+            inputs.forEach((input, index) => {
+               if(numberQuestion >= 0 && numberQuestion <= questions.length - 1)
+                 userAnswers[`${index}_${questions[numberQuestion].question}`] = input.value; // записываются свойства объекта их значения 
+                if(numberQuestion === questions.length)
+                 userAnswers[`Номер телефона`] = input.value;
+            });
+
+             finalAnswers.push(userAnswers); //записанные данные отправляются в массив finalAnswers
+        };
+
+        //уменьшение и увеличение номера вопроса по нажатию на кнопки
 		nextButton.onclick = () => {
-			numberQuestion++;
-			if(numberQuestion == questions.length-1) nextButton.classList.toggle('d-none');
+            checkedAnswer();
+			numberQuestion++;	
 			renderQuestions(numberQuestion);
 		};
-
 		prevButton.onclick = () => {
 			numberQuestion--;
-			if(numberQuestion == 0) prevButton.classList.toggle('d-none');
 			renderQuestions(numberQuestion);
 		};
-		
-	};
+        sendButton.onclick = () => {
+            checkedAnswer();
+            numberQuestion++; 
+            renderQuestions(numberQuestion);  
+            sendButton.classList.add('d-none');
+        };
 
+
+
+	};
 
 });
 
